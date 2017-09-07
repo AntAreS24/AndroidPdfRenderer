@@ -1,30 +1,33 @@
 package au.com.intellihealth.android.androidpdfrenderer;
 
+import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.pdf.PdfRenderer;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.ParcelFileDescriptor;
-import android.support.v7.app.AppCompatActivity;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.ParcelFileDescriptor;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 
 import it.sephiroth.android.library.imagezoom.ImageViewTouch;
 
-import static android.R.attr.orientation;
 
-public class PdfPagingActivity extends AppCompatActivity {
+/**
+ */
+public class PdfPagingFragment extends Fragment {
+    private OnFragmentInteractionListener mListener;
     private static final int PDF_PAGE_PADDING = 5;
     private static final int PORTRAIT = 0, LANDSCAPE = 1;
     private static final String TAG = "PDF2";
@@ -39,16 +42,41 @@ public class PdfPagingActivity extends AppCompatActivity {
     private PdfRenderer renderer;
     private String srcPdfFilename = "test.pdf";
 
+    public PdfPagingFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @return A new instance of fragment PdfPagingFragment.
+     */
+    public static PdfPagingFragment newInstance() {
+        PdfPagingFragment fragment = new PdfPagingFragment();
+        Bundle args = new Bundle();
+        //args.putString(ARG_PARAM1, param1);
+        //args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_pdf_paging);
+        if (getArguments() != null) {
+            //mParam1 = getArguments().getString(ARG_PARAM1);
+            //mParam2 = getArguments().getString(ARG_PARAM2);
+        }
+    }
 
-        imageView = (ImageViewTouch) findViewById(R.id.imagepdf);
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        imageView = getView().findViewById(R.id.imagepdf);
 
-        previous = (Button) findViewById(R.id.pdfPrevious);
-        next = (Button) findViewById(R.id.pdfNext);
+        previous = getView().findViewById(R.id.pdfPrevious);
+        next = getView().findViewById(R.id.pdfNext);
 
         next.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -66,7 +94,7 @@ public class PdfPagingActivity extends AppCompatActivity {
         });
 
         // Restore the page from the state (if any)
-        if(savedInstanceState.containsKey(CURRENT_PAGE)){
+        if (savedInstanceState != null && savedInstanceState.containsKey(CURRENT_PAGE)) {
             currentPage = savedInstanceState.getInt(CURRENT_PAGE);
         }
 
@@ -90,15 +118,52 @@ public class PdfPagingActivity extends AppCompatActivity {
                 render();
             }
         });
-
     }
 
     @Override
-    protected void onSaveInstanceState (Bundle outState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.activity_pdf_paging, container, false);
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        if (context instanceof OnFragmentInteractionListener) {
+            mListener = (OnFragmentInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement OnFragmentInteractionListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListener = null;
+    }
+
+    /**
+     * This interface must be implemented by activities that contain this
+     * fragment to allow an interaction in this fragment to be communicated
+     * to the activity and potentially other fragments contained in that
+     * activity.
+     * <p>
+     * See the Android Training lesson <a href=
+     * "http://developer.android.com/training/basics/fragments/communicating.html"
+     * >Communicating with Other Fragments</a> for more information.
+     */
+    public interface OnFragmentInteractionListener {
+        // TODO: Update argument type and name
+        void onFragmentInteraction(Uri uri);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(CURRENT_PAGE, currentPage);
     }
-    
+
     private void preparePDF() {
         try {
             File file = null;
@@ -158,7 +223,7 @@ public class PdfPagingActivity extends AppCompatActivity {
             if (imageWidth > 0 && imageHeight > 0) {
                 if (currentPage < 0) {
                     currentPage = 0;
-                } else if (currentPage > renderer.getPageCount()-1) {
+                } else if (currentPage > renderer.getPageCount() - 1) {
                     currentPage = renderer.getPageCount() - 1;
                 }
                 //TODO don't render if we're already on the last page... (disable next/previous button)
@@ -179,7 +244,7 @@ public class PdfPagingActivity extends AppCompatActivity {
                 Log.i(TAG, "pdfPageHeight: " + pdfPageHeight + " | pdfPageWidth: " + pdfPageWidth);
 
                 int density = getResources().getDisplayMetrics().densityDpi;
-                Log.i(TAG, "density: "+density);
+                Log.i(TAG, "density: " + density);
                 pdfPageWidth = density * pdfPageWidth / 150;
                 pdfPageHeight = density * pdfPageHeight / 150;
 
